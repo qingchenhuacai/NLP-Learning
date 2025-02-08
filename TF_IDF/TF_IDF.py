@@ -7,7 +7,7 @@ import json
 class TFIDF:
     def __init__(self, corpus_path):
         self.corpus_path = corpus_path
-        self.corpus = [] # 存放分词后的语料库，每个元素是list，是每篇文章的分词结果
+        self.corpus = [] # 存放分词后的语料库，每个元素是str, 会在build_tf_idf()中分词
         self.tf_dict = defaultdict(lambda: defaultdict(int)) # key:文档序号，value：dict，文档中每个词出现的频率
         self.idf_dict = defaultdict(set) # key:词， value：set，词出现过的文档序号，最终用于计算每个词在多少篇文档中出现过
         self.tf_idf_dict = defaultdict(lambda: defaultdict(float)) # key:文档序号，value：dict，文档中每个词的tf-idf值
@@ -22,7 +22,7 @@ class TFIDF:
                 with open(path, 'r', encoding='utf-8') as f:
                     self.corpus.append(f.read()) # f.read()返回str
         
-        self.corpus = [jieba.lcut(text) for text in self.corpus] # 返回嵌套列表，每个text被分词后组成list
+        # self.corpus = [jieba.lcut(text) for text in self.corpus] # 返回嵌套列表，每个text被分词后组成list
         return
     
     def load_corpus_from_json(self, corpus_path):
@@ -42,11 +42,14 @@ class TFIDF:
                 with open(path, 'r', encoding='utf-8') as f:
                     documents = json.loads(f.read())
                     for document in documents:
-                        self.corpus.append(document['title'] + '/n' + document['content'])
+                        # document['title'] = jieba.lcut(document['title'])
+                        # document['content'] = jieba.lcut(document['content'])
+                        self.corpus.append(document['title'] + '\n' + document['content'])
         return
     
     def build_tf_idf(self):
         for text_id, text in enumerate(self.corpus):
+            text = jieba.lcut(text)
             for word in text:
                 self.tf_dict[text_id][word] += 1 # 每个word在每篇文章text_id中出现的次数
                 self.idf_dict[word].add(text_id) # 每个word出现过的文档序号
@@ -66,6 +69,7 @@ class TFIDF:
         return
     
     def get_top_k(self, k, if_print = True):
+        # {文档id : [(词1，从高到低的tf_idf值)，(词2，从高到低的tf_idf值)，(词3，从高到低的tf_idf值)]}
         topk_dict = {}
         for text_id, word_tf_idf_dict in self.tf_idf_dict.items():
             sorted_tdidf_list = sorted(word_tf_idf_dict.items(), key=lambda x: x[1], reverse=True)[:k]
@@ -85,11 +89,12 @@ if __name__ == '__main__':
     tfidf.load_corpus_from_txt(txt_corpus_path)
     tfidf.build_tf_idf()
     topk_dict = tfidf.get_top_k(10, if_print=True)
-    
+    '''
     json_corpus_path = "TF_IDF/corpus/"
     tfidf = TFIDF(json_corpus_path)
     tfidf.load_corpus_from_json(json_corpus_path)
     tfidf.build_tf_idf()
     topk_dict = tfidf.get_top_k(10, if_print=True)
+    '''
 
 
